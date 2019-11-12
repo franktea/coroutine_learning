@@ -5,9 +5,10 @@ all:
 	clang++ -std=c++2a -fcoroutines-ts -lstdc++ co_vs_callback.cpp -o co_vs_call_back
 	clang++ -std=c++2a -fcoroutines-ts -lstdc++ range-v3.cpp -o range-v3
 	clang++ -std=c++2a -lstdc++ entry_function.cpp -o entry_function -lboost_context-mt
+	clang++ -g -std=c++2a -lstdc++ multi_jump.cpp -o multi_jump -lboost_context-mt
 	
 clean:
-	rm -f generator1 generator2 generator3 co_vs_call_back range-v3 entry_function
+	rm -f generator1 generator2 generator3 co_vs_call_back range-v3 entry_function multi_jump
 	
 
 
