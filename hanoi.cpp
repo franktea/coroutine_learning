@@ -1,19 +1,14 @@
 /*
- * generator2.cpp
- *  generator from here:
- *  https://raw.githubusercontent.com/roger-dv/cpp20-coro-generator/master/generator.h
- *  Created on: Oct 31, 2019
+ * hanoi.cpp
+ *
+ *  Created on: Jan 5, 2020
  *      Author: frank
  */
-//
-// Created by rogerv on 9/29/19.
-//
-// Based on example code (but with significant cleanup) found in:
-// Rainer Grimm, Concurrency with Modern C++ (Leanpub, 2017 - 2019), 207-209.
-//
+
 #include <experimental/coroutine>
 #include <memory>
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -50,7 +45,7 @@ public:
         return not coro.done();
     }
 
-    T getValue() {
+    T get_value() {
         return coro.promise().current_value;
     }
 
@@ -94,21 +89,46 @@ public:
     };
 };
 
-generator<int> f()
-{
-    for(int i = 0; i < 10; ++i)
-    {
-        co_yield i;
+struct DiskInfo {
+    int disk_number;
+    char from_rod; // 此处柱子的编号简单用char类型'A' 'B' 'C'表示
+    char to_rod;
+    string ToString() {
+    	return std::to_string(disk_number) + string(1, from_rod) + string(1, to_rod);
     }
+};
+
+struct HanoiStep : public std::experimental::suspend_never {
+	int n;
+	char from_rod;
+	char to_rod;
+	char aux_rod;
+};
+
+generator<DiskInfo> TowerOfHanoi(int n, char from_rod,
+                    char to_rod, char aux_rod)
+{
+	std::cout<<"call "<<n<<", "<<from_rod<<", "<<to_rod<<", "<<aux_rod<<"\n";
+    if (n == 1)
+    {
+        co_yield DiskInfo { 1, from_rod, to_rod };
+        co_return;
+    }
+
+    auto f1 = TowerOfHanoi(n - 1, from_rod, aux_rod, to_rod);
+    co_yield DiskInfo { n, from_rod, to_rod };
+    co_await TowerOfHanoi(n - 1, aux_rod, to_rod, from_rod);
 }
 
 int main()
 {
-    auto it = f();
+    auto it = TowerOfHanoi(6, 'A', 'B', 'C');
     while(it.next())
     {
-        cout<<it.getValue()<<", ";
+        cout<<it.get_value().ToString()<<"\n";
     }
-    cout<<"\n";
     return 0;
 }
+
+
+
