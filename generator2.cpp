@@ -14,6 +14,7 @@
 #include <experimental/coroutine>
 #include <memory>
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 
@@ -79,7 +80,7 @@ public:
         }
 
         auto return_void() {
-        	std::cout<<"return void\n";
+        	//std::cout<<"return void\n";
             return std::experimental::suspend_never { };
         }
 
@@ -94,9 +95,11 @@ public:
     };
 };
 
+const int times = 10000000;
+
 generator<int> f()
 {
-    for(int i = 0; i < 10; ++i)
+    for(int i = 0; i < times; ++i)
     {
         co_yield i;
     }
@@ -105,10 +108,12 @@ generator<int> f()
 int main()
 {
     auto it = f();
+    int i = 0;
     while(it.next())
     {
-        cout<<it.getValue()<<", ";
+    	assert(i++ == it.getValue());
+        //cout<<it.getValue()<<", ";
     }
-    cout<<"\n";
+    assert(i == times);
     return 0;
 }
