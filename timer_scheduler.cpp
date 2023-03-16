@@ -17,10 +17,9 @@ public:
         }
     }
 
-    template<class T>
-    void Insert(std::pair<T, std::coroutine_handle<>> p) {
-        auto t = std::chrono::steady_clock::now() + p.first;
-        TimerScheduler::Instance().timer_map_.insert(std::make_pair(t, p.second));
+    void Insert(std::chrono::steady_clock::duration d, std::coroutine_handle<> h) {
+        auto t = std::chrono::steady_clock::now() + d;
+        TimerScheduler::Instance().timer_map_.insert(std::make_pair(t, h));
     }
 
     static TimerScheduler& Instance() {
@@ -33,12 +32,15 @@ private:
     std::map<std::chrono::time_point<std::chrono::steady_clock>, std::coroutine_handle<>> timer_map_;
 };
 
+// 重载运算符co_await，这样就可以支持co_await 10ms这样的语法了
 auto operator co_await(std::chrono::steady_clock::duration d) noexcept {
     struct awaitable_timer {
         std::chrono::steady_clock::duration d;
         bool await_ready() const noexcept { return false; }
         void await_suspend(std::coroutine_handle<> h) noexcept {
-            TimerScheduler::Instance().Insert(std::make_pair(d, h));
+            // 将写成handle保存在timer scheduler中，
+            // 使得scheduler可以在必要的时候调用h.resume()
+            TimerScheduler::Instance().Insert(d, h);
         }
         void await_resume() noexcept { }
     };

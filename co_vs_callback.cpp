@@ -44,10 +44,10 @@ struct Task
 	struct promise_type {
 		auto get_return_object() { return Task{this}; }
 		auto initial_suspend() { return std::experimental::suspend_never{}; }
-		auto final_suspend() { return std::experimental::suspend_never{}; }
+		auto final_suspend() noexcept { return std::experimental::suspend_never{}; }
 		void unhandled_exception() { std::terminate(); }
 		//void return_void() {}
-		int return_value(int v) { return v; }
+		int return_value(int v) noexcept { return v; }
 		std::experimental::coroutine_handle<> coro() {
 			return std::experimental::coroutine_handle<promise_type>::from_promise(*this);
 		}
