@@ -7,19 +7,15 @@
 using namespace std::chrono_literals;
 
 class TimerScheduler {
+    friend auto operator co_await(std::chrono::steady_clock::duration d);
 public:
     // Run，在主循环里面调用
     void Run() {
         auto now = std::chrono::steady_clock::now();
         while(! timer_map_.empty() && timer_map_.begin()->first <= now) {
-            timer_map_.begin()->second.resume();
+            timer_map_.begin()->second.resume(); // 唤醒该定时器对应的协程
             timer_map_.erase(timer_map_.begin());
         }
-    }
-
-    void Insert(std::chrono::steady_clock::duration d, std::coroutine_handle<> h) {
-        auto t = std::chrono::steady_clock::now() + d;
-        TimerScheduler::Instance().timer_map_.insert(std::make_pair(t, h));
     }
 
     static TimerScheduler& Instance() {
@@ -33,14 +29,15 @@ private:
 };
 
 // 重载运算符co_await，这样就可以支持co_await 10ms这样的语法了
-auto operator co_await(std::chrono::steady_clock::duration d) noexcept {
+auto operator co_await(std::chrono::steady_clock::duration d) {
     struct awaitable_timer {
         std::chrono::steady_clock::duration d;
         bool await_ready() const noexcept { return false; }
         void await_suspend(std::coroutine_handle<> h) noexcept {
             // 将写成handle保存在timer scheduler中，
             // 使得scheduler可以在必要的时候调用h.resume()
-            TimerScheduler::Instance().Insert(d, h);
+            auto t = std::chrono::steady_clock::now() + d;
+            TimerScheduler::Instance().timer_map_.insert(std::make_pair(t, h));
         }
         void await_resume() noexcept { }
     };
@@ -57,18 +54,19 @@ struct Task {
     };
 };
 
-Task TimerTest() {
-    std::cout<<"begin\n";
+Task TimerTest(int index) {
+    std::cout<<"coroutnine "<<index<<" begin\n";
 
     co_await 100ms;
-    std::cout<<"after 100ms\n";
+    std::cout<<"coroutnine "<<index<<" after 100ms\n";
 
     co_await 1s;
-    std::cout<<"after 1s\n";
+    std::cout<<"coroutnine "<<index<<" after 1s\n";
 };
 
 int main() {
-    TimerTest();
+    TimerTest(1);
+    TimerTest(2);
 
     while(1) { // 主循环
         TimerScheduler::Instance().Run(); // 在这里run
